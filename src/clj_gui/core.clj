@@ -8,10 +8,26 @@
             [manifold.stream :as s]
             [clojure.string :as string]
             [gloss.core :as gloss]
-            [gloss.io :as io])
+            [gloss.io :as io]
+            [clojure.edn :as edn])
   (:import (java.util.regex Pattern)))
 
 (def protocol (gloss/string :utf-8 :delimiters ["\n"]))
+
+(defn wrap-duplex-stream
+  [protocol s]
+  (let [out (s/stream)]
+    (s/connect
+      (s/map #(io/encode protocol %) out)
+      s)
+    (s/splice
+      out
+      (io/decode-stream s protocol))))
+
+(defn client
+  [host port]
+  (d/chain (tcp/client {:host host, :port port})
+           #(wrap-duplex-stream protocol %)))
 
 (pyro.printer/swap-stacktrace-engine!)
 
@@ -220,14 +236,15 @@
     ((lookup-message-handler command) args)))
 
 (defn launch-client [address port]
-  (do (println "Connecting")
-      (let [client-stream (tcp/client {:host address :port port})]
+  (do (println (str "Connecting to " address " : " port))
+      (let [client-stream (client address (Integer/parseInt port))]
         (println "Theoreticaly connected")
         (dosync (alter tcp-server (fn [old-state]
-                                    (when (and (some? old-state)
-                                               (not (s/closed? old-state)))
-                                      (s/close! old-state))
-                                    client-stream)))
+                                    (when (some? old-state)
+                                      (s/close! (:stream old-state)))
+                                    {:stream  client-stream
+                                     :address address
+                                     :port    port})))
         (s/consume (fn [bytes]
                      (-> bytes
                          (byte-streams/convert String)
