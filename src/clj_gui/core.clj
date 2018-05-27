@@ -285,8 +285,6 @@
                              (dosync (dom/update-app old-ui
                                                      (stage (ensure gui-state))))))))))
 
-
-
 (defn -main []
   (do
     (launch-gui)))
