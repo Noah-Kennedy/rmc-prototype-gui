@@ -12,6 +12,9 @@
             [clojure.edn :as edn])
   (:import (java.util.regex Pattern)))
 
+(declare stage)
+(declare main-window)
+
 (def protocol (gloss/string :utf-8 :delimiters ["\n"]))
 
 (defn wrap-duplex-stream
@@ -32,6 +35,10 @@
 (pyro.printer/swap-stacktrace-engine!)
 
 (def tcp-server (ref nil))
+
+(defn send-to-robot [message]
+  (s/put! (:stream @tcp-server) message))
+
 (def gui-state (ref {:right-actuator "0"
                      :left-actuator  "0"
                      :tcp-status     false
@@ -223,7 +230,12 @@
   [report]
   (get {"hello" (fn [_]
                   (dosync
-                    (alter gui-state assoc :tcp-status true)))}
+                    (alter gui-state assoc :tcp-status true)
+                    (alter gui-state assoc
+                           :tcp-address (:address (ensure tcp-server)))
+                    (alter gui-state assoc
+                           :tcp-port (:port (ensure tcp-server)))))
+        "test"  (fn [_] (println "test"))}
        report))
 
 (defn handle-new-message
@@ -232,48 +244,46 @@
   (let [tokens (string/split message (Pattern/compile " "))
         command (first tokens)
         args (rest tokens)]
-    (println message)
     ((lookup-message-handler command) args)))
 
 (defn launch-client [address port]
   (do (println (str "Connecting to " address " : " port))
-      (let [client-stream (client address (Integer/parseInt port))]
-        (println "Theoreticaly connected")
-        (dosync (alter tcp-server (fn [old-state]
-                                    (when (some? old-state)
-                                      (s/close! (:stream old-state)))
-                                    {:stream  client-stream
-                                     :address address
-                                     :port    port})))
-        (s/consume (fn [bytes]
-                     (-> bytes
-                         (byte-streams/convert String)
-                         handle-new-message)
-                     client-stream)
-                   client-stream))))
+      (let [client-stream @(client address (Integer/parseInt port))]
+        (println "Theoretically connected")
+        (ref-set tcp-server
+                 {:stream  client-stream
+                  :address address
+                  :port    port})
+        (println "Chaining...")
+        (s/consume-async
+          (comp handle-new-message
+                (fn [bytes]
+                  (byte-streams/convert bytes String)))
+          client-stream)
+        (println "Chained."))))
+
+(defn gui-event-handler [event]
+  (case (get event :event)
+    :tcp-connect (let [fields (get event :fn-fx/includes)
+                       address (-> fields
+                                   (get :tcp-address-field)
+                                   (get :text))
+                       port (-> fields
+                                (get :tcp-port-field)
+                                (get :text))]
+                   (dosync
+                     (launch-client address (str port))
+                     (println "Launched")
+                     (println (str "Handled: " event))))))
 
 (defn launch-gui []
-  (let [
-        handler-fn (fn [event]
-                     (case (get event :event)
-                       :tcp-connect (let [fields (get event :fn-fx/includes)
-                                          address (-> fields
-                                                      (get :tcp-address-field)
-                                                      (get :text))
-                                          port (-> fields
-                                                   (get :tcp-port-field)
-                                                   (get :text))]
-                                      (dosync
-                                        (launch-client address (str port))
-                                        (alter gui-state assoc :tcp-address
-                                               (get tcp-server :address))
-                                        (alter gui-state assoc :tcp-port
-                                               (get tcp-server :port))))))
-        ui-state (dosync (agent (dom/app (stage (ensure gui-state)) handler-fn)))]
-    (add-watch gui-state :ui (fn [_ _ _ _]
-                               (send ui-state
-                                     (fn [old-ui]
-                                       (dom/update-app old-ui (stage (ensure gui-state)))))))))
+  (let [ui-state (dosync (agent (dom/app (stage (ensure gui-state)) gui-event-handler)))]
+    (add-watch gui-state
+               :ui (fn [_ _ _ _]
+                     (send ui-state
+                           (fn [old-ui]
+                             (dosync (dom/update-app old-ui
+                                                     (stage (ensure gui-state))))))))))
 
 
 
