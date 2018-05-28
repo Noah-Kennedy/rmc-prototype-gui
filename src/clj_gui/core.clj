@@ -5,8 +5,10 @@
             [clojure.string :as string]
             [clj-gui.tcp :refer [client!]]
             [clj-gui.gui :refer [stage]]
-            [fn-fx.fx-dom :as dom])
-  (:import (java.util.regex Pattern)))
+            [fn-fx.fx-dom :as dom]
+            [clojure.pprint :refer [pprint]])
+  (:import (java.util.regex Pattern)
+           (java.io StringWriter)))
 
 (set! *warn-on-reflection* true)
 (pyro.printer/swap-stacktrace-engine!)
@@ -56,20 +58,20 @@
               (when (and (some? server)
                          (not (s/closed? server)))
                 (s/close! server))))
-          (println (str "Connecting to " address " at port " port "..."))
+          (gui-println (str "Connecting to " address " at port " port "..."))
           (let [client-stream @(client! address (Integer/parseInt port))]
-            (println "Connected")
+            (gui-println "Connected")
             (ref-set tcp-server
                      {:stream  client-stream
                       :address address
                       :port    port})
-            (println "Setting up message handler")
+            (gui-println "Setting up message handler")
             (s/consume-async
               (comp handle-new-message
                     (fn [bytes]
                       (byte-streams/convert bytes String)))
               client-stream)
-            (println "Done."))))
+            (gui-println "Done."))))
 
 (defn handle-hello-gui-event [_]
   (dosync
@@ -93,9 +95,8 @@
                  (get :text))]
     (dosync
       (launch-client! address (str port))
-      (println "Launched")
-      (println (str "Handled: " event)))
-    (handle-hello-gui-event event)))
+      (gui-println "Launched")
+      (handle-hello-gui-event event))))
 
 (defn gui-event-handler [event]
   (let [event-id (:event event)]
@@ -103,7 +104,7 @@
                 :hello       handle-hello-gui-event
                 :test        handle-test-gui-event})
       event)
-    (println (str "Handled: " event))))
+    (gui-println (str "Handled: " (:event event)))))
 
 (defn launch-gui! []
   (let [ui-state (dosync (agent (dom/app (stage (ensure gui-state)) gui-event-handler)))]
@@ -113,6 +114,7 @@
                            (fn [old-ui]
                              (dosync (dom/update-app old-ui
                                                      (stage (ensure gui-state))))))))))
+
 (defn -main []
   (do
     (launch-gui!)))
