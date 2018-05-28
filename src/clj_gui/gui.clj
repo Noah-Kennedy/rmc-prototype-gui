@@ -1,6 +1,5 @@
 (ns clj-gui.gui
   (:require pyro.printer
-            [fn-fx.fx-dom :as dom]
             [fn-fx.diff :refer [component defui render should-update?]]
             [fn-fx.controls :as ui]))
 
@@ -39,42 +38,50 @@
                                      :grid-pane/column-index 1
                                      :grid-pane/row-index 1)]))]))
 
-(defn get-sensor-content []
-  (ui/grid-pane
+(defn get-command-content [console-txt]
+  (ui/v-box
     :style "-fx-border-color: black"
     :alignment :top-left
-    :hgap 10
-    :vgap 10
-    :padding (ui/insets
-               :bottom 25
-               :top 25
-               :left 25
-               :right 25)
-    :children [(ui/label
-                 :text "Command"
-                 :grid-pane/column-index 0
-                 :grid-pane/row-index 0)
-               (ui/text-field
-                 :id :command-field
-                 :grid-pane/column-index 1
-                 :grid-pane/row-index 0)
-               (ui/button
-                 :text "Send off"
-                 :on-action {:event         :send-command
-                             :fn-fx/include {:command-field #{:text}}}
-                 :grid-pane/column-index 0
-                 :grid-pane/row-index 1)
+    :children [(ui/grid-pane
+                 :style "-fx-border-color: black"
+                 :alignment :top-left
+                 :hgap 10
+                 :vgap 10
+                 :padding (ui/insets
+                            :bottom 25
+                            :top 25
+                            :left 25
+                            :right 25)
+                 :children [(ui/label
+                              :text "Command"
+                              :grid-pane/column-index 0
+                              :grid-pane/row-index 0)
+                            (ui/text-field
+                              :id :command-field
+                              :grid-pane/column-index 1
+                              :grid-pane/row-index 0)
+                            (ui/button
+                              :text "Send off"
+                              :on-action {:event         :send-command
+                                          :fn-fx/include {:command-field #{:text}}}
+                              :grid-pane/column-index 0
+                              :grid-pane/row-index 1)
 
-               (ui/button
-                 :text "hello"
-                 :on-action {:event :hello}
-                 :grid-pane/column-index 0
-                 :grid-pane/row-index 2)
-               (ui/button
-                 :text "test"
-                 :on-action {:event :test}
-                 :grid-pane/column-index 1
-                 :grid-pane/row-index 2)]))
+                            (ui/button
+                              :text "hello"
+                              :on-action {:event :hello}
+                              :grid-pane/column-index 0
+                              :grid-pane/row-index 2)
+                            (ui/button
+                              :text "test"
+                              :on-action {:event :test}
+                              :grid-pane/column-index 1
+                              :grid-pane/row-index 2)])
+               (ui/text-area
+                 :min-height 500
+                 :editable false
+                 :style "-fx-border-color: black"
+                 :text console-txt)]))
 
 (defn get-connection-content [tcp-status
                               udp-status
@@ -221,11 +228,12 @@
                         tcp-address
                         udp-address
                         tcp-port
-                        udp-port]}]
+                        udp-port
+                        console-txt]}]
     (ui/border-pane
       :min-width 1500
       :min-height 1000
-      :right (get-sensor-content)
+      :right (get-command-content console-txt)
       :left (get-connection-content tcp-status
                                     udp-status
                                     tcp-address

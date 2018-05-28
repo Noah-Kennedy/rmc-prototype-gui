@@ -18,7 +18,12 @@
                      :tcp-address    "NA"
                      :udp-address    "NA"
                      :tcp-port       "NA"
-                     :udp-port       "NA"}))
+                     :udp-port       "NA"
+                     :console-txt    ""}))
+
+(defn gui-println [text]
+  (dosync (let [current-text (:console-txt (ensure gui-state))]
+            (alter gui-state assoc :console-txt (str current-text "\n" text)))))
 
 (def tcp-server (ref nil))
 
@@ -34,7 +39,7 @@
                            :tcp-address (:address (ensure tcp-server)))
                     (alter gui-state assoc
                            :tcp-port (:port (ensure tcp-server)))))
-        "test"  (fn [_] (println "test"))}
+        "test"  (fn [_] (gui-println "test"))}
        report))
 
 (defn handle-new-message
@@ -93,12 +98,12 @@
     (handle-hello-gui-event event)))
 
 (defn gui-event-handler [event]
-    (let [event-id (:event event)]
-      ((event-id {:tcp-connect handle-tcp-connect-event
-                  :hello       handle-hello-gui-event
-                  :test        handle-test-gui-event})
-        event)
-      (println (str "Handled: " event))))
+  (let [event-id (:event event)]
+    ((event-id {:tcp-connect handle-tcp-connect-event
+                :hello       handle-hello-gui-event
+                :test        handle-test-gui-event})
+      event)
+    (println (str "Handled: " event))))
 
 (defn launch-gui! []
   (let [ui-state (dosync (agent (dom/app (stage (ensure gui-state)) gui-event-handler)))]
