@@ -66,27 +66,39 @@
               client-stream)
             (println "Done."))))
 
+(defn handle-hello-gui-event [_]
+  (dosync
+    (when (and (some? (ensure tcp-server))
+               (not (s/closed? (:stream (ensure tcp-server)))))
+      (send-to-robot! "hello"))))
+
+(defn handle-test-gui-event [_]
+  (dosync
+    (when (= (:tcp-status (ensure gui-state))
+             true)
+      (send-to-robot! "test"))))
+
+(defn handle-tcp-connect-event [event]
+  (let [fields (get event :fn-fx/includes)
+        address (-> fields
+                    (get :tcp-address-field)
+                    (get :text))
+        port (-> fields
+                 (get :tcp-port-field)
+                 (get :text))]
+    (dosync
+      (launch-client! address (str port))
+      (println "Launched")
+      (println (str "Handled: " event)))
+    (handle-hello-gui-event event)))
+
 (defn gui-event-handler [event]
-  (case (get event :event)
-    :tcp-connect (let [fields (get event :fn-fx/includes)
-                       address (-> fields
-                                   (get :tcp-address-field)
-                                   (get :text))
-                       port (-> fields
-                                (get :tcp-port-field)
-                                (get :text))]
-                   (dosync
-                     (launch-client! address (str port))
-                     (println "Launched")
-                     (println (str "Handled: " event))))
-    :hello (dosync
-             (when (and (some? (ensure tcp-server))
-                        (not (s/closed? (:stream (ensure tcp-server)))))
-               (send-to-robot! "hello")))
-    :test (dosync
-            (when (= (:tcp-status (ensure gui-state))
-                     true)
-              (send-to-robot! "test")))))
+    (let [event-id (:event event)]
+      ((event-id {:tcp-connect handle-tcp-connect-event
+                  :hello       handle-hello-gui-event
+                  :test        handle-test-gui-event})
+        event)
+      (println (str "Handled: " event))))
 
 (defn launch-gui! []
   (let [ui-state (dosync (agent (dom/app (stage (ensure gui-state)) gui-event-handler)))]

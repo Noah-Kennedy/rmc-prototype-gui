@@ -7,11 +7,12 @@
 (declare stage)
 (declare main-window)
 
-(defn get-tab-pane-content []
+(defn get-tab-pane-content [right-actuator
+                            left-actuator]
   (ui/tab-pane
     :style "-fx-border-color: black"
     :tabs [(ui/tab
-             :text "Commands"
+             :text "Sensor Data"
              :content (ui/grid-pane
                         :alignment :top-left
                         :hgap 10
@@ -22,33 +23,23 @@
                                    :left 25
                                    :right 25)
                         :children [(ui/label
-                                     :text "Command"
+                                     :text "Right Actuator:"
                                      :grid-pane/column-index 0
                                      :grid-pane/row-index 0)
-                                   (ui/text-field
-                                     :id :command-field
-                                     :grid-pane/column-index 1
-                                     :grid-pane/row-index 0)
-                                   (ui/button
-                                     :text "Send off"
-                                     :on-action {:event         :send-command
-                                                 :fn-fx/include {:command-field #{:text}}}
+                                   (ui/label
+                                     :text "Left Actuator:"
                                      :grid-pane/column-index 0
                                      :grid-pane/row-index 1)
-
-                                   (ui/button
-                                     :text "hello"
-                                     :on-action {:event :hello}
-                                     :grid-pane/column-index 0
-                                     :grid-pane/row-index 2)
-                                   (ui/button
-                                     :text "test"
-                                     :on-action {:event :test}
+                                   (ui/label
+                                     :text (str right-actuator)
                                      :grid-pane/column-index 1
-                                     :grid-pane/row-index 2)]))]))
+                                     :grid-pane/row-index 0)
+                                   (ui/label
+                                     :text (str left-actuator)
+                                     :grid-pane/column-index 1
+                                     :grid-pane/row-index 1)]))]))
 
-(defn get-sensor-content [right-actuator
-                          left-actuator]
+(defn get-sensor-content []
   (ui/grid-pane
     :style "-fx-border-color: black"
     :alignment :top-left
@@ -60,21 +51,30 @@
                :left 25
                :right 25)
     :children [(ui/label
-                 :text "Right Actuator:"
+                 :text "Command"
                  :grid-pane/column-index 0
                  :grid-pane/row-index 0)
-               (ui/label
-                 :text "Left Actuator:"
+               (ui/text-field
+                 :id :command-field
+                 :grid-pane/column-index 1
+                 :grid-pane/row-index 0)
+               (ui/button
+                 :text "Send off"
+                 :on-action {:event         :send-command
+                             :fn-fx/include {:command-field #{:text}}}
                  :grid-pane/column-index 0
                  :grid-pane/row-index 1)
-               (ui/label
-                 :text (str right-actuator)
+
+               (ui/button
+                 :text "hello"
+                 :on-action {:event :hello}
+                 :grid-pane/column-index 0
+                 :grid-pane/row-index 2)
+               (ui/button
+                 :text "test"
+                 :on-action {:event :test}
                  :grid-pane/column-index 1
-                 :grid-pane/row-index 0)
-               (ui/label
-                 :text (str left-actuator)
-                 :grid-pane/column-index 1
-                 :grid-pane/row-index 1)]))
+                 :grid-pane/row-index 2)]))
 
 (defn get-connection-content [tcp-status
                               udp-status
@@ -225,15 +225,15 @@
     (ui/border-pane
       :min-width 1500
       :min-height 1000
-      :right (get-sensor-content right-actuator
-                                 left-actuator)
+      :right (get-sensor-content)
       :left (get-connection-content tcp-status
                                     udp-status
                                     tcp-address
                                     udp-address
                                     tcp-port
                                     udp-port)
-      :bottom (get-tab-pane-content))))
+      :bottom (get-tab-pane-content right-actuator
+                                    left-actuator))))
 
 (defui Stage
   (render [this args]
