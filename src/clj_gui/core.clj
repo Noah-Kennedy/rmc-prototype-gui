@@ -51,20 +51,20 @@
               (when (and (some? server)
                          (not (s/closed? server)))
                 (s/close! server))))
-    (println (str "Connecting to " address " at port " port "..."))
-      (let [client-stream @(client! address (Integer/parseInt port))]
-        (println "Connected")
-        (ref-set tcp-server
-                 {:stream  client-stream
-                  :address address
-                  :port    port})
-        (println "Setting up message handler")
-        (s/consume-async
-          (comp handle-new-message
-                (fn [bytes]
-                  (byte-streams/convert bytes String)))
-          client-stream)
-        (println "Done."))))
+          (println (str "Connecting to " address " at port " port "..."))
+          (let [client-stream @(client! address (Integer/parseInt port))]
+            (println "Connected")
+            (ref-set tcp-server
+                     {:stream  client-stream
+                      :address address
+                      :port    port})
+            (println "Setting up message handler")
+            (s/consume-async
+              (comp handle-new-message
+                    (fn [bytes]
+                      (byte-streams/convert bytes String)))
+              client-stream)
+            (println "Done."))))
 
 (defn gui-event-handler [event]
   (case (get event :event)
@@ -78,7 +78,15 @@
                    (dosync
                      (launch-client! address (str port))
                      (println "Launched")
-                     (println (str "Handled: " event))))))
+                     (println (str "Handled: " event))))
+    :hello (dosync
+             (when (and (some? (ensure tcp-server))
+                        (not (s/closed? (:stream (ensure tcp-server)))))
+               (send-to-robot! "hello")))
+    :test (dosync
+            (when (= (:tcp-status (ensure gui-state))
+                     true)
+              (send-to-robot! "test")))))
 
 (defn launch-gui! []
   (let [ui-state (dosync (agent (dom/app (stage (ensure gui-state)) gui-event-handler)))]
