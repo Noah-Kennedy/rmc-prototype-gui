@@ -72,17 +72,16 @@
               client-stream)
             (gui-println "Done."))))
 
-(defn handle-hello-gui-event [_]
-  (dosync
-    (when (and (some? (ensure tcp-server))
-               (not (s/closed? (:stream (ensure tcp-server)))))
-      (send-to-robot! "hello"))))
+(defmacro defcommand [name command-string]
+  `(defn ~name [~'_]
+     (dosync
+       (when (and (some? (ensure ~'tcp-server))
+                  (not (s/closed? (:stream (ensure ~'tcp-server)))))
+         (send-to-robot! ~command-string)))))
 
-(defn handle-test-gui-event [_]
-  (dosync
-    (when (= (:tcp-status (ensure gui-state))
-             true)
-      (send-to-robot! "test"))))
+(defcommand handle-hello-gui-event "hello")
+
+(defcommand handle-test-gui-event "test")
 
 (defn handle-tcp-connect-event [event]
   (let [fields (get event :fn-fx/includes)

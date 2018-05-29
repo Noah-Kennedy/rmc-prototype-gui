@@ -12,6 +12,7 @@
     :style "-fx-border-color: black"
     :tabs [(ui/tab
              :text "Sensor Data"
+             :closable false
              :content (ui/grid-pane
                         :alignment :top-left
                         :hgap 10
