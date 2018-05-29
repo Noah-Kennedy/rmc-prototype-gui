@@ -74,6 +74,12 @@
               client-stream)
             (gui-println "Done."))))
 
+(defmacro sending [body]
+  `(dosync
+     (when (and (some? (ensure ~'tcp-server))
+                (not (s/closed? (:stream (ensure ~'tcp-server)))))
+       ~body)))
+
 (defmacro defcommand [name command-string]
   `(defn ~name [~'_]
      (dosync
@@ -86,6 +92,13 @@
 (defcommand handle-test-gui-event "test")
 
 (defcommand handle-kill-gui-event "kill")
+
+(defn handle-gui-send-command [event]
+  (sending
+    (send-to-robot! (-> event
+                        :fn-fx/includes
+                        :command-field
+                        :text))))
 
 (defn handle-tcp-connect-event [event]
   (let [fields (get event :fn-fx/includes)
@@ -102,10 +115,11 @@
 
 (defn gui-event-handler [event]
   (let [event-id (:event event)]
-    ((event-id {:tcp-connect handle-tcp-connect-event
-                :hello       handle-hello-gui-event
-                :test        handle-test-gui-event
-                :kill        handle-kill-gui-event})
+    ((event-id {:tcp-connect  handle-tcp-connect-event
+                :hello        handle-hello-gui-event
+                :test         handle-test-gui-event
+                :kill         handle-kill-gui-event
+                :send-command handle-gui-send-command})
       event)
     (gui-println (str "Handled: " (:event event)))))
 
