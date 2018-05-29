@@ -49,7 +49,9 @@
   (let [tokens (string/split message (Pattern/compile " "))
         command (first tokens)
         args (rest tokens)]
-    ((lookup-message-handler command) args)))
+    (try ((lookup-message-handler command) args)
+         (catch NullPointerException _
+           (gui-println "Error: a message with an unrecognized header was received")))))
 
 (defn launch-client! [address port]
   (dosync (when (some? @tcp-server)
@@ -83,6 +85,8 @@
 
 (defcommand handle-test-gui-event "test")
 
+(defcommand handle-kill-gui-event "kill")
+
 (defn handle-tcp-connect-event [event]
   (let [fields (get event :fn-fx/includes)
         address (-> fields
@@ -100,7 +104,8 @@
   (let [event-id (:event event)]
     ((event-id {:tcp-connect handle-tcp-connect-event
                 :hello       handle-hello-gui-event
-                :test        handle-test-gui-event})
+                :test        handle-test-gui-event
+                :kill        handle-kill-gui-event})
       event)
     (gui-println (str "Handled: " (:event event)))))
 

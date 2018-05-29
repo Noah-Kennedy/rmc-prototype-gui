@@ -77,9 +77,14 @@
                               :text "test"
                               :on-action {:event :test}
                               :grid-pane/column-index 1
-                              :grid-pane/row-index 2)])
+                              :grid-pane/row-index 2)
+                            (ui/button
+                              :text "kill"
+                              :on-action {:event :kill}
+                              :grid-pane/column-index 0
+                              :grid-pane/row-index 3)])
                (ui/text-area
-                 :min-height 730
+                 :min-height 500
                  :editable false
                  :style "-fx-border-color: black"
                  :text console-txt)]))
@@ -233,7 +238,7 @@
                         console-txt]}]
     (ui/border-pane
       :min-width 1500
-      :min-height 1000
+      :min-height 900
       :right (get-command-content console-txt)
       :left (get-connection-content tcp-status
                                     udp-status
