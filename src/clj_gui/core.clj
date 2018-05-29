@@ -7,8 +7,7 @@
             [clj-gui.gui :refer [stage]]
             [fn-fx.fx-dom :as dom]
             [clojure.pprint :refer [pprint]])
-  (:import (java.util.regex Pattern)
-           (java.io StringWriter)))
+  (:import (java.util.regex Pattern)))
 
 (set! *warn-on-reflection* true)
 (pyro.printer/swap-stacktrace-engine!)

@@ -78,7 +78,7 @@
                               :grid-pane/column-index 1
                               :grid-pane/row-index 2)])
                (ui/text-area
-                 :min-height 500
+                 :min-height 730
                  :editable false
                  :style "-fx-border-color: black"
                  :text console-txt)]))
